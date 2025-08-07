@@ -3,4 +3,5 @@ uvicorn
 gunicorn
 pydantic
 langchain-google-genai
+langchain-core
 SpeechRecognition

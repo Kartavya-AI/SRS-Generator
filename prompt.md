@@ -1,1 +1,3 @@
 Build a machine learning model to predict customer churn based on historical usage patterns, demographics, and engagement metrics. The goal is to help businesses proactively identify customers at risk of leaving and take preventive actions to improve retention. The project will involve data preprocessing, feature engineering, model training, evaluation, and deployment of the predictive system.
+
+Develop an iOS mobile application that allows users to track their daily habits and set personalized goals. The app should include features like habit creation, reminders, streak tracking, and visual progress charts. It must follow Apple’s Human Interface Guidelines, support dark mode, and ensure data persistence using Core Data or CloudKit for sync across devices.

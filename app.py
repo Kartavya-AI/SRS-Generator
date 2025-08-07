@@ -56,18 +56,27 @@ with st.sidebar:
             key='recorder'
         )
 
-        if audio_info and audio_info['bytes']:
+        if audio_info and audio_info.get('bytes'):
             st.write("Transcribing audio...")
             recognizer = sr.Recognizer()
             try:
-                audio_data = sr.AudioData(audio_info['bytes'], audio_info['sample_rate'], 2)
-                transcribed_text = recognizer.recognize_google(audio_data, language=selected_lang_code)
+                sample_width = audio_info.get('sample_width', 2)
+                audio_data = sr.AudioData(
+                    audio_info['bytes'],
+                    audio_info['sample_rate'],
+                    sample_width
+                )
+                transcribed_text = recognizer.recognize_google(
+                    audio_data,
+                    language=selected_lang_code
+                )
                 st.session_state.requirements_text = transcribed_text
                 st.success("Transcription complete.")
+                st.session_state.stage = 'review_requirements'
             except sr.UnknownValueError:
                 st.error("Could not understand the audio. Please try again.")
             except sr.RequestError as e:
-                st.error(f"Speech recognition service error; {e}")
+                st.error(f"Speech recognition service error: {e}")
 
         requirements = st.text_area(
             "Describe your project requirements (or edit transcribed text):",
@@ -107,7 +116,7 @@ elif st.session_state.stage == 'asking_questions':
     for entry in st.session_state.conversation_history:
         if entry.startswith("User's Initial Requirement:") or entry.startswith("User Answer:"):
             st.chat_message("user").write(entry.split(":", 1)[1].strip())
-        else: # Agent's question
+        else:
             st.chat_message("assistant").write(entry.split(":", 1)[1].strip())
 
     index = st.session_state.current_question_index
