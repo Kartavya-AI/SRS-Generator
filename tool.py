@@ -8,52 +8,81 @@ def cleanup_text(text: str) -> str:
     text = text.replace('#', '')
     return text
 
-def generate_srs(api_key: str, specialist: str, requirements: str) -> str:
+
+def generate_questions(api_key: str, specialist: str, requirements: str) -> list[str]:
+    os.environ["GOOGLE_API_KEY"] = api_key
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0.8)
+
+    question_generation_template = """
+    You are an expert {specialist}. A user has provided the following initial project description:
+    "{requirements}"
+
+    Your task is to act as a project manager and identify areas that need more clarification.
+    Generate a list of 5 to 6 critical follow-up questions to ask the user. These questions will help you gather the necessary details to write a comprehensive Software Requirements Specification (SRS).
+
+    RULES:
+    - Ask questions that cover functional requirements, target users, constraints, and potential features.
+    - The questions should be clear, concise, and open-ended to encourage detailed responses.
+    - Return ONLY the questions, with each question on a new line. Do not add any other text, numbering, or salutations.
+    """
+
+    prompt = ChatPromptTemplate.from_template(question_generation_template)
+    chain = prompt | llm | StrOutputParser()
+
+    response = chain.invoke({
+        "specialist": specialist,
+        "requirements": requirements
+    })
+    questions = [q.strip() for q in response.split('\n') if q.strip()]
+    return questions
+
+
+def generate_srs(api_key: str, specialist: str, conversation: str) -> str:
     os.environ["GOOGLE_API_KEY"] = api_key
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0.7)
 
-
     srs_template = """
     As an expert {specialist}, your task is to create a formal Software Requirements Specification (SRS) document.
-    The user has provided the following project requirements:
+    You have conducted a Q&A session with the user. The full transcript is provided below:
 
-    --- USER REQUIREMENTS ---
-    {requirements}
-    --- END OF REQUIREMENTS ---
+    --- CONVERSATION TRANSCRIPT ---
+    {conversation}
+    --- END OF TRANSCRIPT ---
 
-    Based on these requirements, please generate a comprehensive SRS document with the following sections.
-    Be detailed and professional in your writing. If a section is not applicable, state that.
+    Based on the ENTIRE conversation, please generate a comprehensive and well-structured SRS document.
+    The user's responses might be informal, but your output must be professional.
+    Infer details and structure the information logically into the following sections.
 
-    1.  **Introduction**
+    1.  INTRODUCTION
         1.1. Purpose of the Document
         1.2. Scope of the Project
         1.3. Target Audience
 
-    2.  **Overall Description**
+    2.  OVERALL DESCRIPTION
         2.1. Product Perspective
         2.2. Product Functions (Summarize the key features)
         2.3. User Characteristics
         2.4. Constraints (e.g., technology stack, platform, security)
         2.5. Assumptions and Dependencies
 
-    3.  **System Features**
-        (Break down the requirements into specific, detailed features. For each feature, describe its functionality.)
+    3.  SYSTEM FEATURES
+        (Break down the requirements into specific, detailed features based on the conversation.)
         3.1. Feature 1: [Name of Feature]
              - Description: ...
              - Functional Requirements: ...
         3.2. Feature 2: [Name of Feature]
              - Description: ...
              - Functional Requirements: ...
-        (Continue for all major features based on the user's input)
+        (Continue for all major features)
 
-    4.  **Non-Functional Requirements**
+    4.  NON-FUNCTIONAL REQUIREMENTS
         4.1. Performance
         4.2. Security
         4.3. Usability
         4.4. Reliability
 
-    5.  **Appendices (Optional)**
-        (If you can infer any, add definitions, acronyms, or abbreviations here.)
+    5.  APPENDICES (Optional)
+        (Add definitions, acronyms, or abbreviations if inferred from the context.)
 
     **FORMATTING RULES (VERY IMPORTANT):**
     - **DO NOT USE MARKDOWN.**
@@ -69,7 +98,7 @@ def generate_srs(api_key: str, specialist: str, requirements: str) -> str:
     srs_chain = prompt | llm | output_parser
     response = srs_chain.invoke({
         "specialist": specialist,
-        "requirements": requirements
+        "conversation": conversation
     })
 
     clean_response = cleanup_text(response)
