@@ -5,3 +5,4 @@ pydantic
 langchain-google-genai
 langchain-core
 SpeechRecognition
+python-multipart

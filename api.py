@@ -2,6 +2,7 @@ import os
 import io
 import uuid
 import logging
+import time
 from typing import Optional
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -176,7 +177,7 @@ async def start_conversation(request: StartConversationRequest):
             "history": [f"User's Initial Requirement: {request.requirements}"],
             "questions": questions,
             "question_index": 0,
-            "created_at": os.time.time() if hasattr(os, 'time') else 0
+            "created_at": time.time()
         }
         
         logger.info(f"Created conversation {conversation_id} with {len(questions)} questions")
@@ -278,7 +279,6 @@ async def submit_answer(request: SubmitAnswerRequest):
             detail=f"An unexpected error occurred: {str(e)}"
         )
 
-# Conversation management endpoints
 @app.get("/conversation/{conversation_id}/status", summary="Get Conversation Status")
 async def get_conversation_status(conversation_id: str):
     """Get the current status of a conversation"""
@@ -304,7 +304,6 @@ async def cancel_conversation(conversation_id: str):
     del conversation_storage[conversation_id]
     return {"message": f"Conversation {conversation_id} has been cancelled"}
 
-# Error handlers
 @app.exception_handler(500)
 async def internal_server_error_handler(request, exc):
     """Handle internal server errors"""
@@ -314,7 +313,6 @@ async def internal_server_error_handler(request, exc):
         "message": "An unexpected error occurred. Please try again later."
     }
 
-# Startup event
 @app.on_event("startup")
 async def startup_event():
     """Application startup event"""
@@ -322,7 +320,6 @@ async def startup_event():
     logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'production')}")
     logger.info("API is ready to serve requests")
 
-# Shutdown event
 @app.on_event("shutdown")
 async def shutdown_event():
     """Application shutdown event"""
