@@ -32,7 +32,6 @@ app.add_middleware(
 conversation_storage = {}
 
 class StartConversationRequest(BaseModel):
-    gemini_api_key: str
     specialist: str
     requirements: str
 
@@ -56,6 +55,16 @@ class SubmitAnswerResponse(BaseModel):
 def get_secret_from_env(secret_name: str, default: Optional[str] = None) -> Optional[str]:
     return os.getenv(secret_name, default)
 
+def get_gemini_api_key() -> str:
+    """Get Gemini API key from environment variables"""
+    api_key = get_secret_from_env("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="Gemini API key not configured. Please set GEMINI_API_KEY environment variable."
+        )
+    return api_key
+
 def validate_api_key(api_key: str) -> bool:
     return api_key and len(api_key) > 10 and api_key.startswith(('AIza', 'AIzaS'))
 
@@ -77,11 +86,15 @@ async def root():
 @app.get("/health", summary="Detailed Health Check")
 async def health_check():
     """Detailed health check with system information"""
+    # Check if Gemini API key is configured
+    gemini_configured = bool(get_secret_from_env("GEMINI_API_KEY"))
+    
     return {
         "status": "healthy",
         "active_conversations": len(conversation_storage),
         "environment": os.getenv("ENVIRONMENT", "production"),
-        "python_version": f"{os.sys.version_info.major}.{os.sys.version_info.minor}.{os.sys.version_info.micro}"
+        "python_version": f"{os.sys.version_info.major}.{os.sys.version_info.minor}.{os.sys.version_info.micro}",
+        "gemini_api_configured": gemini_configured
     }
 
 @app.post("/transcribe/", summary="Transcribe Audio to Text", response_model=TranscriptionResponse)
@@ -134,10 +147,14 @@ async def transcribe_audio(
           response_model=ConversationStartResponse)
 async def start_conversation(request: StartConversationRequest):
     try:
-        if not validate_api_key(request.gemini_api_key):
+        # Get API key from environment
+        gemini_api_key = get_gemini_api_key()
+        
+        if not validate_api_key(gemini_api_key):
+            logger.error("Invalid Gemini API key format from environment")
             raise HTTPException(
-                status_code=400,
-                detail="Invalid Gemini API key format"
+                status_code=500,
+                detail="Invalid Gemini API key configuration"
             )
         
         if not request.specialist.strip():
@@ -155,7 +172,7 @@ async def start_conversation(request: StartConversationRequest):
         logger.info(f"Starting conversation for specialist: {request.specialist}")
         
         questions = generate_questions(
-            api_key=request.gemini_api_key,
+            api_key=gemini_api_key,
             specialist=request.specialist,
             requirements=request.requirements
         )
@@ -172,7 +189,6 @@ async def start_conversation(request: StartConversationRequest):
         # Create conversation session
         conversation_id = str(uuid.uuid4())
         conversation_storage[conversation_id] = {
-            "gemini_api_key": request.gemini_api_key,
             "specialist": request.specialist,
             "history": [f"User's Initial Requirement: {request.requirements}"],
             "questions": questions,
@@ -244,11 +260,14 @@ async def submit_answer(request: SubmitAnswerRequest):
             # All questions answered - generate SRS document
             logger.info(f"Generating SRS document for conversation {request.conversation_id}")
             
+            # Get API key from environment
+            gemini_api_key = get_gemini_api_key()
+            
             full_conversation = "\n".join(state["history"])
             
             try:
                 srs_document = generate_srs(
-                    api_key=state["gemini_api_key"],
+                    api_key=gemini_api_key,
                     specialist=state["specialist"],
                     conversation=full_conversation
                 )
@@ -318,6 +337,17 @@ async def startup_event():
     """Application startup event"""
     logger.info("SRS Generator API starting up...")
     logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'production')}")
+    
+    # Check if Gemini API key is configured
+    try:
+        api_key = get_secret_from_env("GEMINI_API_KEY")
+        if api_key:
+            logger.info("Gemini API key is configured")
+        else:
+            logger.warning("GEMINI_API_KEY environment variable not set!")
+    except Exception as e:
+        logger.error(f"Error checking Gemini API key: {e}")
+    
     logger.info("API is ready to serve requests")
 
 @app.on_event("shutdown")
