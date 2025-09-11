@@ -10,6 +10,7 @@ from pydantic import BaseModel
 import speech_recognition as sr
 from tool import generate_srs, generate_questions
 from dotenv import load_dotenv
+from google.cloud import storage
 
 load_dotenv()
 
