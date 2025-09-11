@@ -107,10 +107,17 @@ async def health_check():
     """Detailed health check with system information"""
     # Check if Gemini API key is configured
     gemini_configured = bool(get_secret_from_env("GEMINI_API_KEY"))
-    
+
+    try:
+        bucket = storage_client.bucket(BUCKET_NAME)
+        blobs = list(bucket.list_blobs())
+        active_conversations = len([b for b in blobs if b.name.endswith(".json")])
+    except Exception as e:
+        active_conversations = f"error: {str(e)}"
+        
     return {
         "status": "healthy",
-        "active_conversations": len(conversation_storage),
+        "active_conversations": active_conversations,
         "environment": os.getenv("ENVIRONMENT", "production"),
         "python_version": f"{os.sys.version_info.major}.{os.sys.version_info.minor}.{os.sys.version_info.micro}",
         "gemini_api_configured": gemini_configured
