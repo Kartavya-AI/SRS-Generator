@@ -69,7 +69,7 @@ def validate_api_key(api_key: str) -> bool:
     return api_key and len(api_key) > 10 and api_key.startswith(('AIza', 'AIzaS'))
 
 def cleanup_conversation_storage():
-    if len(conversation_storage) > 100:
+    if len(conversation_storage) > 500:
         oldest_keys = list(conversation_storage.keys())[:-50]
         for key in oldest_keys:
             conversation_storage.pop(key, None)
