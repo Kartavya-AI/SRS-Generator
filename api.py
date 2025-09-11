@@ -9,6 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import speech_recognition as sr
 from tool import generate_srs, generate_questions
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
