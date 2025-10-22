@@ -11,7 +11,7 @@ def cleanup_text(text: str) -> str:
 
 def generate_questions(api_key: str, specialist: str, requirements: str) -> list[str]:
     os.environ["GOOGLE_API_KEY"] = api_key
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0.8)
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.8)
 
     question_generation_template = """
     You are an expert {specialist}. A user has provided the following initial project description:
