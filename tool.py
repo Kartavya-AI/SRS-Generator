@@ -39,7 +39,7 @@ def generate_questions(api_key: str, specialist: str, requirements: str) -> list
 
 def generate_srs(api_key: str, specialist: str, conversation: str) -> str:
     os.environ["GOOGLE_API_KEY"] = api_key
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0.7)
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.7)
 
     srs_template = """
     As an expert {specialist}, your task is to create a formal Software Requirements Specification (SRS) document.
