@@ -40,7 +40,7 @@ app.add_middleware(
 )
 
 # Cloud Storage bucket
-BUCKET_NAME = "srs-conversations"
+BUCKET_NAME = "srs-conversation"
 
 # Create client with explicit project
 storage_client = storage.Client()
